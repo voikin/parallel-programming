@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Переменные
+SOURCE_FILE="task3.cpp"  # Имя исходного файла программы
+OUTPUT_FILE="mpitest"  # Имя для скомпилированного исполнимого файла
+RESULTS_FILE="results.csv"  # Имя файла для сохранения результатов
+
+# Проверка существования исходного файла
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "Ошибка: файл '$SOURCE_FILE' не существует."
+    exit 1
+fi
+
+# Компиляция программы с MPI
+echo "Компиляция файла $SOURCE_FILE..."
+mpic++ -std=c++11 -Wall -Wextra "$SOURCE_FILE" -o "$OUTPUT_FILE"
+
+# Проверка на успешность компиляции
+if [ $? -ne 0 ]; then
+    echo "Ошибка: компиляция не удалась."
+    exit 1
+fi
+
+# Очистка старых результатов
+rm -f $RESULTS_FILE
+
+# Запись заголовка в CSV файл
+echo "GridSize,Processes,ExecutionTime" > $RESULTS_FILE
+
+# Размеры сетки
+GRID_SIZES=(10 100 1000 2000 3000)
+
+# Точность
+EPSILON=0.0001
+
+# Количество процессов для MPI
+PROCESSES=(2 4 6)
+
+# Запуск программы с разными параметрами (сетка и количество процессов)
+for GRID in "${GRID_SIZES[@]}"; do
+    for PROC in "${PROCESSES[@]}"; do
+        echo "Запуск программы для сетки размером $GRID с $PROC процессами..."
+
+        # Запуск программы и извлечение времени выполнения
+        OUTPUT=$(mpirun --oversubscribe -np "$PROC" "./$OUTPUT_FILE" $GRID $EPSILON)
+
+        # Извлечение времени выполнения из вывода программы
+        TIME=$(echo "$OUTPUT" | grep "Execution time:" | awk '{print $3}')
+
+        # Запись результатов в CSV файл
+        echo "$GRID,$PROC,$TIME" >> $RESULTS_FILE
+    done
+done
+
+echo "Результаты сохранены в файл $RESULTS_FILE"
