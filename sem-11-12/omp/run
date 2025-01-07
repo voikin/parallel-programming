@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Переменные
+SOURCE_FILE="main.cpp"  # Имя исходного файла программы
+OUTPUT_FILE="omptest"  # Имя для скомпилированного исполнимого файла
+RESULTS_FILE="results.csv"  # Имя файла для сохранения результатов
+
+# Проверка существования исходного файла
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "Ошибка: файл '$SOURCE_FILE' не существует."
+    exit 1
+fi
+
+# Компиляция программы с OpenMP
+echo "Компиляция файла $SOURCE_FILE..."
+clang++ -Xclang -fopenmp -std=c++17 -L/opt/homebrew/opt/libomp/lib -I/opt/homebrew/opt/libomp/include -lomp "$SOURCE_FILE" -o "$OUTPUT_FILE"
+
+# Проверка на успешность компиляции
+if [ $? -ne 0 ]; then
+    echo "Ошибка: компиляция не удалась."
+    exit 1
+fi
+
+# Очистка старых результатов
+rm -f $RESULTS_FILE
+
+# Запись заголовка в CSV файл
+echo "ArraySize,Threads,ExecutionTime" > $RESULTS_FILE
+
+# Размеры массива
+ARRAY_SIZES=(10000 50000 100000 500000 1000000 5000000 10000000)
+
+# Количество потоков для OpenMP
+THREADS=(2 4 8)
+
+# Запуск программы с разными параметрами (размер массива и количество потоков)
+for SIZE in "${ARRAY_SIZES[@]}"; do
+    for THREAD in "${THREADS[@]}"; do
+        echo "Запуск программы для массива размером $SIZE с $THREAD потоками..."
+
+        # Запуск программы и извлечение времени выполнения
+        OUTPUT=$("./$OUTPUT_FILE" $SIZE $THREAD)
+
+        # Извлечение времени выполнения из вывода программы
+        TIME=$(echo "$OUTPUT" | grep "Execution time:" | awk '{print $3}')
+
+        # Запись результатов в CSV файл
+        echo "$SIZE,$THREAD,$TIME" >> $RESULTS_FILE
+    done
+done
+
+echo "Результаты сохранены в файл $RESULTS_FILE"
