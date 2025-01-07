@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Проверка наличия аргумента
+if [ $# -ne 2 ]; then
+    echo "Использование: $0 <название_файла> <кол-во процессоров>"
+    exit 1
+fi
+
+# Переменные
+SOURCE_FILE="$1"
+TASK_NUMBER="$2"
+OUTPUT_FILE="omptest"
+
+# Проверка существования файла
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "Ошибка: файл '$SOURCE_FILE' не существует."
+    exit 1
+fi
+
+# Компиляция
+echo "Компиляция файла $SOURCE_FILE..."
+mpic++ -std=c++11 -Wall -Wextra "$SOURCE_FILE" -o "$OUTPUT_FILE"
+
+# Проверка успешности компиляции
+if [ $? -ne 0 ]; then
+    echo "Ошибка: компиляция не удалась."
+    exit 1
+fi
+
+# Цикл для запуска для первого задания
+if [ "$TASK_NUMBER" == "1" ]; then
+    for PROCS in 1 2 4 6 12; do
+        echo "Запуск программы на $PROCS процессах..."
+        mpirun --oversubscribe -np "$PROCS" "$OUTPUT_FILE"
+    done
+fi
+
+# Цикл для запуска для второго задания
+if [ "$TASK_NUMBER" == "2" ]; then
+    for PROCS in 1 2 5 10; do
+        echo "Запуск программы на $PROCS процессах..."
+        mpirun --oversubscribe -np "$PROCS" "$OUTPUT_FILE"
+    done
+fi
